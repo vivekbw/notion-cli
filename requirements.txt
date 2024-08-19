@@ -1,0 +1,4 @@
+click==8.0.1
+notion-client==0.7.0
+pytest==6.2.5
+python-dotenv==0.19.2
