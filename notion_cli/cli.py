@@ -1,5 +1,5 @@
 import click
-from notion_cli.notion_wrapper import send_message, read_messages, search_messages, format_timestamp, clear_database
+from notion_cli.notion_wrapper import send_message, read_messages, search_messages, format_timestamp, clear_database, delete_message
 
 
 @click.group()
@@ -50,6 +50,16 @@ def search(phrase):
             click.echo(f"|From: {msg['sender']}")
             click.echo(f"|To: {msg['recipient']}")
             click.echo(f"|Sent at: {msg['timestamp']}\n")
+
+
+@cli.command()
+@click.argument('message_id')
+def delete(message_id):
+    """Deletes a message with the specified ID"""
+    if delete_message(message_id):
+        click.echo(f"\nMessage with ID {message_id} has been deleted.")
+    else:
+        click.echo(f"\nNo message found with ID {message_id}.")
 
 
 @cli.command()

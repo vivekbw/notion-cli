@@ -2,6 +2,7 @@ import os
 from notion_client import Client
 from datetime import datetime
 from dotenv import load_dotenv
+import uuid
 
 load_dotenv()
 notion = Client(auth=os.environ["NOTION_TOKEN"])
@@ -56,15 +57,18 @@ def format_timestamp(timestamp):
 def send_message(sender, recipient, message, timestamp):
     """Sends a message from [sender] to [recipient]"""
     DATABASE_ID = get_database_id()
+    message_id = str(uuid.uuid4())  # Generate a unique ID
     notion.pages.create(
         parent={"database_id": DATABASE_ID},
         properties={
+            "ID": {"rich_text": [{"text": {"content": message_id}}]},
             "Sender": {"rich_text": [{"text": {"content": sender}}]},
             "Recipient": {"rich_text": [{"text": {"content": recipient}}]},
             "Timestamp": {"date": {"start": timestamp}},
             "Message": {"title": [{"text": {"content": message}}]},
         }
     )
+    return message_id
 
 
 def read_messages(recipient):
@@ -83,6 +87,7 @@ def read_messages(recipient):
     formatted_messages = []
 
     for r in results["results"]:
+        message_id = r["properties"]["ID"]["rich_text"][0]["text"]["content"]
         sender = r["properties"]["Sender"]["rich_text"][0]["text"]["content"]
         message = r["properties"]["Message"]["title"][0]["text"]["content"]
         timestamp = r["properties"]["Timestamp"]["date"]["start"]
@@ -90,6 +95,7 @@ def read_messages(recipient):
         formatted_timestamp = format_timestamp(timestamp)
 
         formatted_messages.append({
+            "id": message_id,
             "sender": sender,
             "message": message,
             "timestamp": formatted_timestamp
@@ -138,3 +144,48 @@ def clear_database():
 
     for page in results["results"]:
         notion.pages.update(page_id=page["id"], archived=True)
+
+
+def delete_message(message_id):
+    """Deletes a message with the specified ID"""
+    DATABASE_ID = get_database_id()
+    results = notion.databases.query(
+        database_id=DATABASE_ID,
+        filter={
+            "property": "ID",
+            "title": {"equals": message_id},
+        }
+    )
+
+    if results["results"]:
+        page_id = results["results"][0]["id"]
+        notion.pages.update(page_id=page_id, archived=True)
+        return True
+    return False
+
+
+def get_all_messages():
+    """Retrieves all messages from the database"""
+    DATABASE_ID = get_database_id()
+    results = notion.databases.query(database_id=DATABASE_ID)
+
+    formatted_messages = []
+
+    for r in results["results"]:
+        message_id = r["properties"]["ID"]["rich_text"][0]["text"]["content"]
+        sender = r["properties"]["Sender"]["rich_text"][0]["text"]["content"]
+        recipient = r["properties"]["Recipient"]["rich_text"][0]["text"]["content"]
+        message = r["properties"]["Message"]["title"][0]["text"]["content"]
+        timestamp = r["properties"]["Timestamp"]["date"]["start"]
+
+        formatted_timestamp = format_timestamp(timestamp)
+
+        formatted_messages.append({
+            "id": message_id,
+            "sender": sender,
+            "recipient": recipient,
+            "message": message,
+            "timestamp": formatted_timestamp
+        })
+
+    return formatted_messages
