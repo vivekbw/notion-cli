@@ -1,7 +1,5 @@
 # Vivek Bhardwaj | NotionMail
 
-Welcome to my submission for the Notion Take-home project!
-
 ## **Table of Contents**
 
 - [Added Features](#improvements-made-added-features)
